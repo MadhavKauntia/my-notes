@@ -47,3 +47,8 @@ public class UnsafeCountingFactorizer implements Servlet {
 ```
 ```UnsafeCountingFactorizer``` is not thread-safe since ```++count``` is not atomic, which means that it does not execute as a single, indivisible operation. Two threads may simultaneously access count, read the value, see that it is 9, and set it to 10.
 To make ```UnsafeCountingFactorizer``` thread-safe, we can use an atomic variable *AtomicLong* instead of *long*.
+
+#### Locking
+* To preserve state consistency, update *related state variables* in a single atomic operation.
+* **Intrinsic Lock** - The only way to acquire an intrinsic lock is to enter a ```synchronized``` block or method guarded by that lock. Intrinsic locks in Java act as mutual exclusion locks, which means that at most one thread may own the lock.
+* **Reentrancy** - If a thread tries to acquire a lock that it already holds, then it succeeds. Reentrancy means that locks are acquired on a per-thread rather than per-invocation basis. It is implemented by associating each lock with an acquisition count and owning thread. Each time that thread tries to acquire a lock, the acquisition count is incremented and each time it exits the ```synchronized``` block, the count is decremented. When the count reaches zero, the lock is released.
