@@ -1,5 +1,5 @@
 # HTTP
-
+Hypertext Transfer Protocol (often abbreviated to HTTP) is a communications protocol. It is used to send and receive webpages and files on the internet.
 ### Client / Server
 * **Client** - Browser, Python, or JS app
 * **Server** - HTTP Web Server
