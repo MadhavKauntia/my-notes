@@ -61,7 +61,7 @@ mongo-express
 
 we can specify the following **\*mongo-docker-compose.yaml** file -
 
-```
+```yml
 version: '3' //version of docker compose
 services:
     mongodb:
@@ -93,6 +93,7 @@ Command to stop:
 > docker-compose -f <yaml_file> down
 
 ## Dockerfile
+
 A dockerfile is a blueprint for creating Docker images.
 
 ![Dockerfile](../images/dockerfile.png)
@@ -102,17 +103,20 @@ You can have multiple **RUN** commands but just one **CMD** command.
 The file name of a Dockerfile is **Dockerfile**.
 
 Command to build image using this Dockerfile:
+
 > docker build -t my-app:1.0
 
 This command creates an image with name **my-app** and version **1.0**.
 
 ## Private Docker Repositoy
+
 DockerHub is a public repository. We can store images of our applications by creating private repositories. For example, we can use AWS ECS to create a private repository and then store our application image in that repository using steps specified in AWS.
 
 ## Docker Volumes
+
 Docker volumes are used for data persistence in Docker. A container has a virtual file system where data is stored. However, there is no persistence here. If we stop and restart a container, the data in the virtual file system is gone and it starts from a fresh state. This is not ideal if we use databases or other storage systems in our application. Docker Volumes persists data by mountung the physical host file system into the virtual file system of Docker.
 
-```
+```yml
 version: '3' //version of docker compose
 services:
     mongodb:
@@ -136,8 +140,9 @@ volumes:
     mongo-data:
         driver: local
 ```
-* **/data/db** is where mongo persists its data, this value will be different for different DBs
-* **driver: local** gives additional information to Docker to create the physical storage on a local file system
-* **mongo-data** is a custom volume name defined by us
+
+- **/data/db** is where mongo persists its data, this value will be different for different DBs
+- **driver: local** gives additional information to Docker to create the physical storage on a local file system
+- **mongo-data** is a custom volume name defined by us
 
 ![Docker Volume Locations](../images/docker-volume-locations.png)
