@@ -22,3 +22,5 @@ setState((prevState) => {
 
 - **Controlled Component** - The values and changes in values are not handled in this component but in the parent component.
 - **Uncontrolled Component** - The values and changes in values are handled in these components. These components basically control the _controlled components_.
+
+* We need to specify a key attribute for rendering lists. If we don't specify keys, react re-renders all values of a list if any new item is added which causes a performance issue.
