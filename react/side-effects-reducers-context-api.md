@@ -9,3 +9,28 @@
 - Sometimes, we have _more complex state_ - for example if it has multiple states, multiple ways of changing it or dependencies to other states.
 
 > const [state, dispatchFn] = useReducer(reducerFn, initialState, initFn);
+
+## React Context
+
+- Component-wide "behind the scenes" state storage
+- Creating a context
+
+```js
+import React from "react";
+
+const AuthContext = React.createContext({
+  isLoggedIn: false,
+});
+
+export default AuthContext;
+```
+
+- To make this context available in React component, wrap the JSX around which you need to access this context with `<AuthContext.Provider></AuthContext.Provider>`
+- We can pass in a value component inside this AuthContext.Provider component which determines the values of the different properties of the context.
+- To use this context in a component, you can call:
+
+```js
+const ctx = useContext(AuthContext);
+```
+
+- React Context is **NOT optimized** for high frequency changes.
