@@ -31,4 +31,4 @@ return (<>
 
 - Use useState() when we have to often update the state and use refs when you only mostly read the value.
 
-We can extract or set the value of the userNameRef variable using `userNameRef.current.value`
+We can extract or set the value of the userNameRef variable using `userNameRef.current.value`. However, we should not modify the data using refs as this manipulates the DOM which is not ideal. Only React should be the one manipulating the DOMs.

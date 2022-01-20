@@ -8,7 +8,10 @@
 - useReducer() is used for State Management.
 - Sometimes, we have _more complex state_ - for example if it has multiple states, multiple ways of changing it or dependencies to other states.
 
-> const [state, dispatchFn] = useReducer(reducerFn, initialState, initFn);
+```js
+const [state, dispatchFn] = useReducer(reducerFn, initialState);
+const reducerFn = (state, action) => {}; // returns updated state value
+```
 
 ## React Context
 
