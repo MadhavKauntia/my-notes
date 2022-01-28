@@ -63,7 +63,7 @@ const store = createStore(counterReducer);
 export default store;
 ```
 
-Then, in the main ```index.js``` file, we import ```{ Provider }``` from 'react-redux' and enclose <App /> within <Provider></Provider>. We also import the store from our original file and pass it to the Provider.
+Then, in the main ```index.js``` file, we import ```{ Provider }``` from 'react-redux' and enclose ```<App />``` within ```<Provider></Provider>```. We also import the store from our original file and pass it to the Provider.
 ```js
 import React from 'react';
 import ReactDOM from 'react-dom';
@@ -105,7 +105,7 @@ const counterSlice = createSlice({
         },
         decrement(state) {
             state.counter--;
-        }
+        },
         increase(state, action) {
             state.counter = state.counter + action.payload;
         },
