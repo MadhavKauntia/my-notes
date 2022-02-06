@@ -109,3 +109,71 @@ const Component = () => {
     };
 }
 ```
+
+## Prompt
+Useful to generate a prompt. For example, when user tries to navigate away while entering a form, he should be asked to confirm if he wants to leave because the form data might get lost.
+
+```js
+import { Prompt } from 'react-router-dom';
+
+// Component definition and everything
+
+<Prompt when={isEntering} message={(location) => 'Are you sure you want to leave?'} />
+```
+
+## Query Params
+
+To fetch query params in a URL in a Component.
+
+```js
+import { useLocation } from 'react-router-dom';
+
+const location = useLocation();
+const queryPrams = new URLSearchParams(location.search); // this object now contains all query params as key-value pairs
+```
+
+## Using Match
+
+It is not good practice to hardcode the Route path in all the components. If the path requires a change in the future, this will require a change in all the components. Instead, we can use the hook ```useRouteMatch`` to extract the current path and append to it.
+
+```js
+import { useRouteMatch } from 'react-router-dom';
+
+const match = useRouteMatch();
+
+<Route path={`${match.path}/comments`}>
+    <Comments />
+</Route>
+// can also use match.url to extract the URL in case it contains a dynamic path variable
+```
+
+## An alternative history usage
+
+```js
+history.push({
+    pathname: location.pathname, // path
+    search: `?sort=asc` // query params
+});
+```
+
+## React Router v6
+* Replace ```<Switch>``` with ```<Routes>```.
+* Instead of specifying the component to be rendered as a child of ```<Route>```, we now pass it as element attribute in JSX format.
+```js
+<Route path='/welcome' element={<Welcome />} />
+```
+* React Router always looks for exact path matches now. So, we do not need to specify **exact** property.
+* NavLink does not support activeClassName.
+```js
+<NavLink className={(navData) => navData.isActive ? classes.active : ''} to='/welcome'>
+    Welcome
+</NavLink>
+```
+* **Redirect** has been replaced as **Navigate**.
+* If a Component has nested Routes, declare it as '/welcome/*' in the App.js or the base file. Also, the nested Routes now only need the additional path and not the base path (<Route path="new-user" element={<p>Hello</p>}>)
+* Nested routes can now be specified in App.js as the children components of the parent Route. To specify where in the component must the nested component be rendered, use **Outlet**.
+* **useHistory** has been replaced by **useNavigate**.
+```js
+const navigate = useNavigate();
+navigate('/welcome', {replace: true}); // skip the second parameter if you don't want to redirect
+```
