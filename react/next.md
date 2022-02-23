@@ -107,3 +107,41 @@ export async function getServerSideProps(context) {
   };
 }
 ```
+
+- These functions are not present in the client-side code so we can add API calls and sensitive data here.
+
+## API
+
+We can create APIs in our Next.js applicationby defining them in `pages/api/` folder.
+
+```js
+// /api/new-meetup
+
+function handler(req, res) {
+  /**
+  req.method -> HTTP method
+  req.body -> Request body
+  basically works same as in express
+  **/
+}
+
+export default handler;
+```
+
+## Adding 'head' Metadata
+
+```js
+import Head from "next/head";
+
+function HomePage(props) {
+  return (
+    <>
+      <Head>
+        <title>Page Title</title>
+        <meta name="description" content="Description of the page" />
+      </Head>
+      <OtherComponents />
+    </>
+  );
+}
+```
