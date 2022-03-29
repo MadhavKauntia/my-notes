@@ -22,3 +22,30 @@
 - When the function finishes executing, its local memory is deleted (except the returned value)
 - If our function could hold on to live data between executions, this would let the function definition have an associate cache or persistent memory
 - It all starts with us **returning a function from another function**
+
+### Backpack
+
+- When we return a function from another function, we get more than just the code of that function.
+- That function takes with it all the surrounding data in its _backpack_.
+- Whenever we run that function, if we do not find resources in its local memory, we then look into its backpack.
+- If we console.log that function, we will see a hidden property `[[scope]]`. This hidden property persists whenever a function is returned.
+
+```js
+function outer() {
+  let counter = 0;
+  function incrementCounter() {
+    counter++;
+  }
+  return incrementCounter;
+}
+
+const myNewFunction = outer();
+myNewFunction(); // 1
+myNewFunction(); // 2
+
+const anotherFunction = outer();
+anotherFunction(); // 1
+anotherFunction(); // 2
+```
+
+In the above example, each time `outer()` is called and `incrementCounter()` is returned, the returned function gets a new backpack because it was created in a new execution context.
