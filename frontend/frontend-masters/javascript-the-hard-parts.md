@@ -49,3 +49,20 @@ anotherFunction(); // 2
 ```
 
 In the above example, each time `outer()` is called and `incrementCounter()` is returned, the returned function gets a new backpack because it was created in a new execution context.
+
+## Asynchronous JavaScript
+
+A lot of JavaScript features are actually not JS features but web browser features.
+
+DOM -> document
+Network Requests -> fetch
+Timer => setTimeout
+
+These functions are not executed in JavaScript but in a web browser. Coined term for these functions - **facade functions**.
+
+Until ES6, the way asynchronous JavaScript worked was as follows:
+
+- Suppose we call `setTimeout(myFunction, 1000)` and then a million console.log statements after that.
+- After 1000ms, the browser will add the function `myFunction` to the **Callback Queue**.
+- After executing every line of code, the **event loop** checks if there is still something left in the call stack or if there are still remaining lines to execute in global.
+- If not, it adds `myFunction` from the callback queue to the call stack.
