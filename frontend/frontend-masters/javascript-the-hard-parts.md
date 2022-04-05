@@ -80,3 +80,5 @@ When the processing is complete, the final value is stored in `value`.
 Using the `then()` method, we can add methods to the `onFulfilled` array. These functions will be executed on the `value` once it has finished execution.
 
 There is a separate queue called the **microtask queue** to store the functions in the `onFulfilled` array. Basically, once the `value` is returned, the function to be performed is added to the microtask queue. This queue is checked after the call stack is empty but before the callback queue is checked.
+
+Summary: Hold promise-deferred functions in a microtask queue and callback functions in a task queue (callback queue) when the Web Browser Feature finishes. We add the function to the call stack when the call stack is empty and all global code have run. Prioritize functions in the microtask queue over the callback queue.
