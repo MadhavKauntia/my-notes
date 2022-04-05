@@ -66,3 +66,17 @@ Until ES6, the way asynchronous JavaScript worked was as follows:
 - After 1000ms, the browser will add the function `myFunction` to the **Callback Queue**.
 - After executing every line of code, the **event loop** checks if there is still something left in the call stack or if there are still remaining lines to execute in global.
 - If not, it adds `myFunction` from the callback queue to the call stack.
+
+## Promises
+
+Using two-pronged facade functions that both:
+
+- Initiate background web browser work, and
+- return a placeholder object (promise) immediately in JavaScript
+
+The returned object has two properties - `value` and `onFulfilled`.
+When the processing is complete, the final value is stored in `value`.
+
+Using the `then()` method, we can add methods to the `onFulfilled` array. These functions will be executed on the `value` once it has finished execution.
+
+There is a separate queue called the **microtask queue** to store the functions in the `onFulfilled` array. Basically, once the `value` is returned, the function to be performed is added to the microtask queue. This queue is checked after the call stack is empty but before the callback queue is checked.
