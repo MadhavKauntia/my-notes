@@ -71,3 +71,9 @@ Changes made by committed transactions must be persisted in a durable non-volati
 - The index is also stored as pages and cost IO to pull the entries of the index
 - The smaller the index, the more it can fit in memory the faster the search
 - Popular data structure for index is b-trees
+
+### Row-Oriented Database
+
+- Tables are stored as rows in disk
+- A single block IO read to the table fetches multiple rows with all their columns
+- More IOs are required to find a particular row in a table scan but once you find the row, you get all the columns for that row
