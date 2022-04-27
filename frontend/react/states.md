@@ -11,7 +11,7 @@ setState((prevState) => {
 
 - In React, we can only communicate from parent to child and vice versa, we cannot communicate between siblings. We can store the state in a component which has access to both components to transfer data between two components.
 
-![Lifting State Up](../images/lifting-state-up.png)
+![Lifting State Up](../../images/lifting-state-up.png)
 
 ### Stateless vs Stateful Components
 
