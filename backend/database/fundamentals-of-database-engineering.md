@@ -77,3 +77,13 @@ Changes made by committed transactions must be persisted in a durable non-volati
 - Tables are stored as rows in disk
 - A single block IO read to the table fetches multiple rows with all their columns
 - More IOs are required to find a particular row in a table scan but once you find the row, you get all the columns for that row
+
+### Column-Oriented Database
+
+- Tables are stored as columns first in disk
+- A single block IO read to the table fetches multiple columns with all matching rows
+- Less IOs are required to get more values of a given column. But working with multiple columns require more IOs.
+
+## Indexing
+
+ 
