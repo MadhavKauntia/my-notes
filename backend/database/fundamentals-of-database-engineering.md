@@ -86,4 +86,19 @@ Changes made by committed transactions must be persisted in a durable non-volati
 
 ## Indexing
 
- 
+### Understanding SQL Explain
+
+We can use `explain` in postgres to view details of a particular query.
+Here are the different parameters returned by the `explain` command:
+
+- type of scan - The type of scan the database will perform to fetch the desired data.
+- cost - The cost consists of two values. The first value is the time taken by the database to decide what index/table to fetch the data from and the second value is an approximation (in milliseconds) of the total time it will take to execute the query
+- rows - This is an approximate value of the total number of rows which will be returned by the query.
+- width - sum of the bytes of all the columns.
+
+**Index Scan vs Index Only Scan** - If a database fetches all the rows for a particular query by only looking up the index and not the heap, then it is called an Index Only Scan.
+Suppose in a table named `grades` which contains `name` and `id`, we want to create an index on `id` but we also want to store the corressponding names of the ids in the index, we can cretae the following index.
+
+> CREATE INDEX id_idx on grades(id) include (name);
+
+Now, the query `SELECT name FROM grades WHERE id = 7` is executed using an Index Only Scan.
