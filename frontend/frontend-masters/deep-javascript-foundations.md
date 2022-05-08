@@ -52,3 +52,5 @@ if (!Object.is) {
 - toString() - It takes any value and gives us the representation of that value in string form.
 - toNumber() - Converts to number. It first checks valueoF() and then toString().
 - toBoolean() - Falsy values - `"", 0, -0, null, NaN, false, undefined`. **ANY** other value will be truthy.
+
+> A quality JS program embraces coercions, making sure the types involved in every operation are clear. Thus, corner cases are safely managed.
