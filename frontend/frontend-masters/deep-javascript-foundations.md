@@ -54,3 +54,21 @@ if (!Object.is) {
 - toBoolean() - Falsy values - `"", 0, -0, null, NaN, false, undefined`. **ANY** other value will be truthy.
 
 > A quality JS program embraces coercions, making sure the types involved in every operation are clear. Thus, corner cases are safely managed.
+
+## Equality
+
+- **==** allows coercion (types different)
+- **===** disallows coercions (types same)
+
+**==** Summary:
+
+- If the types are same -> ===
+- If _null_ or _undefined_ -> equal
+- If non-primitive -> toPrimitive()
+- Prefer: toNumber()
+
+Avoid:
+
+- **==** with 0 or ""
+- **==** with non-primitives
+- **== true** or **== false**: allow toBoolean or use **===**
