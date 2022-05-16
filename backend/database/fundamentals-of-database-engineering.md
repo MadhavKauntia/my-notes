@@ -86,8 +86,6 @@ Changes made by committed transactions must be persisted in a durable non-volati
 
 ## Indexing
 
-### Understanding SQL Explain
-
 We can use `explain` in postgres to view details of a particular query.
 Here are the different parameters returned by the `explain` command:
 
@@ -102,3 +100,25 @@ Suppose in a table named `grades` which contains `name` and `id`, we want to cre
 > CREATE INDEX id_idx on grades(id) include (name);
 
 Now, the query `SELECT name FROM grades WHERE id = 7` is executed using an Index Only Scan.
+
+**Key vs Non-Key Columns** - In the above example, `id` is a key and `name` is a non-key.
+If we have a composite index on `a` and `b`, then the database will not use the index if only `b` is present in the query.
+
+```sql
+CREATE INDEX test_a_b_idx on test(a, b);
+
+SELECT c FROM test WHERE a = 10; /* Index Only / Bitmap Index Scan */
+SELECT c FROM test WHERE a = 10 AND b = 70; /* Index Only / Bitmap Index Scan */
+SELECT c FROM test WHERE b = 70; /* Parellel Seq Scan */
+SELECT c FROM test WHERE a = 10 OR b = 70; /* Parallel Seq Scan */
+```
+
+When we create an index, the database writes are blocked which is not a good practice in production. So, to create an index without blocking production database writes, use the following query.
+
+```sql
+CREATE INDEX CONCURRENTLY g on grades(g);
+```
+
+**Bloom Filter** - This filter is useful when the server receives requests where it has to check if a particular value is present in a database. We maintain a bitmap of let's say size 64. Whenever the server receives a request to check if a particular name/value is present in a table, we first mod the hash of the value against 64 (size of bitmap) and check if the ith bit in the bitmap is set where `i = hash(value)%64`. If the ith bit in the bitmap is unset, we do not need to query the database as the value won't be present there for sure. On the other hand, if the ith bit is set, then we query the database. This way, we save a lot of expensive queries on the database.
+
+To maintain a Bloom filter, before writing a value to the database, we set the bitmap index of that value.
