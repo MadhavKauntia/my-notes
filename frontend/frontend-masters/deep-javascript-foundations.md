@@ -72,3 +72,43 @@ Avoid:
 - **==** with 0 or ""
 - **==** with non-primitives
 - **== true** or **== false**: allow toBoolean or use **===**
+
+## Scope
+
+- All lexcial scopes are determined at compile-time, not runtime.
+- Variables have two functions - setting value (target) or receiving value (source).
+- During compile-time, all the variables are assigned scopes based on their positions. This is done by the compiler and the scope manager.
+- During runtime, if a variable is not found within a scope, then a lookup to the parent scope happens.
+
+```js
+var teacher = "Kyle";
+
+function otherClass() {
+  teacher = "Suzy";
+  topic = "React";
+  console.log("Welcome!");
+}
+
+otherClass(); // Welcome!
+
+teacher; // Suzy
+topic; // React
+```
+
+In this case, since `topic` is not defined in the scope of `otherClass` or the global scope, ideally, we should get an error. However, in JavaScript, if you try to assign to a variable that's never been formally declared, once you arrive at the global scope, the variable is created by JS in the global scope. This happens when JS is running in not-strict mode. When JS is running in strict mode, that line would throw a `ReferenceError`.
+
+```js
+var teacher = "Kyle";
+
+function otherClass() {
+  var teacher = "Suzy";
+
+  functionask(question) {
+    console.log(teacher, question);
+  }
+  ask("Why?");
+}
+
+otherClass(); // Suzy Why?
+ask("???"); // ReferenceError
+```
