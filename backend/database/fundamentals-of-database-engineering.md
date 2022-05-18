@@ -1,5 +1,14 @@
 # [Fundamentals of Database Engineering](https://www.udemy.com/course/database-engines-crash-course)
 
+- [ACID](#acid)
+  - [Atomicity](#atomicity)
+  - [Isolation](#isolation)
+  - [Consistency](#consistency)
+  - [Durability](#durability)
+- [Database Internals](#database-internals)
+- [Database Indexing](#database-indexing)
+- [Database Partitioning](#database-partitioning)
+
 ## ACID
 
 > A **transaction** is a collection of queries which perform one unit of work. The lifespan of a transaction include the following states - BEGIN, COMMIT, ROLLBACK.
@@ -84,7 +93,7 @@ Changes made by committed transactions must be persisted in a durable non-volati
 - A single block IO read to the table fetches multiple columns with all matching rows
 - Less IOs are required to get more values of a given column. But working with multiple columns require more IOs.
 
-## Indexing
+## Database Indexing
 
 We can use `explain` in postgres to view details of a particular query.
 Here are the different parameters returned by the `explain` command:
@@ -122,3 +131,42 @@ CREATE INDEX CONCURRENTLY g on grades(g);
 **Bloom Filter** - This filter is useful when the server receives requests where it has to check if a particular value is present in a database. We maintain a bitmap of let's say size 64. Whenever the server receives a request to check if a particular name/value is present in a table, we first mod the hash of the value against 64 (size of bitmap) and check if the ith bit in the bitmap is set where `i = hash(value)%64`. If the ith bit in the bitmap is unset, we do not need to query the database as the value won't be present there for sure. On the other hand, if the ith bit is set, then we query the database. This way, we save a lot of expensive queries on the database.
 
 To maintain a Bloom filter, before writing a value to the database, we set the bitmap index of that value.
+
+## Database Partitioning
+
+Partitioning is breaking down a table into smaller tables, each containing a fraction of data contained in the main table.
+
+- **Horizontal Partitioning** partitions on basis of rows.
+- **Vertical Partitioning** partitions on the basis of columns.
+
+Data can be partitioned on a certain range (dates, IDs, etc.), by list (discrete values eg countries) or by hashing.
+
+```sql
+/* create main table */
+CREATE TABLE grades_part(id serial not null, g int not null) partition by range(g);
+
+/* create partition tables */
+CREATE TABLE g0035 (like grades_part including indexes);
+CREATE TABLE g3560 (like grades_part including indexes);
+CREATE TABLE g6080 (like grades_part including indexes);
+CREATE TABLE g80100 (like grades_part including indexes);
+
+/* attaching partitions to main table */
+ALTER TABLE grades_part attach partition g0035 FOR VALUES FROM (0) TO (35);
+ALTER TABLE grades_part attach partition g3560 FOR VALUES FROM (35) TO (60);
+ALTER TABLE grades_part attach partition g6080 FOR VALUES FROM (60) TO (80);
+ALTER TABLE grades_part attach partition g80100 FOR VALUES FROM (80) TO (100);
+```
+
+**Advantages**:
+
+- Improves query performance
+- Sequential scan vs scattered index scan
+- Easy bulk loading
+- Archive old data that are barely accessed into cheap storage
+
+**Disadvantages**:
+
+- Updates that move rows from a partition to another are slow and sometimes fail
+- Inefficient queries could accidentally scan all partitions resulting in slower performance
+- Schema changes can be challenging
