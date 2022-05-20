@@ -112,3 +112,16 @@ function otherClass() {
 otherClass(); // Suzy Why?
 ask("???"); // ReferenceError
 ```
+
+**IIFE Patterns** - If there is a global variable which is being used somewhere further down in the code, and another developer accidentally overrides the variable somewhere in between, that would break the old code. A way to prevent this is by using the IIFE Pattern.
+
+```js
+var teacher = "Kyle";
+
+(function anotherTeacher() {
+  var teacher = "Suzy";
+  console.log(teacher); // Suzy
+})();
+
+console.log(teacher); // Kyle
+```

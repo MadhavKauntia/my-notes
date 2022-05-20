@@ -4,6 +4,7 @@
   - [Reliability](#reliability)
   - [Scalability](#scalability)
   - [Maintainability](#maintainability)
+- [Data Models and Query Languages](#data-models-and-query-languages)
 
 ## Reliable, Scalable and Maintainable Applications
 
@@ -59,3 +60,18 @@ However, we can and should design software in such a way that it will hopefully 
 - Operability - Make it easy for operations teams to keep the system running smoothly.
 - Simplicity - Make it easy for new engineers to understand the system, by removing as much complexity as possible from the system.
 - Evolvability - Make it easy for engineers to make changes to the system in the future, adapting it for unanticipated use cases as requirements change. Also known as _extensibility_, _modifiability_, or _plasticity_.
+
+## Data Models and Query Languages
+
+A data model is an abstract model that organizes elements of data and standardizes how they relate to one another and to the properties of real-world entities.
+
+### Relational Model vs Document Model
+
+The roots of relational databases lie in _business data processing_. However, even for the more powerful and networked computers today, relational databases generalized very well.
+
+Driving forces behind NoSQL adoption:
+
+- need for greater scalability
+- preference for free and open-source software
+- specialized query operations
+- restrictiveness of relational schemas
