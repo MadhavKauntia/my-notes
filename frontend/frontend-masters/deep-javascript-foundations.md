@@ -125,3 +125,20 @@ var teacher = "Kyle";
 
 console.log(teacher); // Kyle
 ```
+
+**Hoisting** - Hoisting is JavaScript's default behavior of moving declarations to the top. In JS, variables can be declared after it has been used.
+
+The exception lies with the `let` and `const` variables. These variables are hoisted to the top of the block, but not initialized. These variables are in the _temporal dead zone_ from the start of the block until it is declared.
+
+```js
+x = 5;
+console.log(x); // 5
+var x;
+
+carName = "Swift"; // ReferenceError
+carBrand = "Maruti"; // ReferenceError
+let carName;
+const carBrand;
+```
+
+> Function declarations are hoisted but function expressions are not hoisted because assignment is a runtime operation.
