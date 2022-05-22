@@ -5,6 +5,9 @@
   - [Scalability](#scalability)
   - [Maintainability](#maintainability)
 - [Data Models and Query Languages](#data-models-and-query-languages)
+  - [Relational Model vs Document Model](#relational-model-vs-document-model)
+  - [Query Languages for Data](#query-languages-for-data)
+  - [Graph-Like Data Models](#graph-like-data-models)
 
 ## Reliable, Scalable and Maintainable Applications
 
@@ -75,3 +78,82 @@ Driving forces behind NoSQL adoption:
 - preference for free and open-source software
 - specialized query operations
 - restrictiveness of relational schemas
+
+Most application development today is done in object-oriented programming languages, which leads to a common criticism of the SQL data model: if data is stored in relational tables, an awkward translation layer is required between the objects in the application code and the database model of tables, rows, and columns. The disconnect between the models is sometimes called an impedance mismatch. Some developers feel like the JSON model reduces this impedance mismatch.
+
+When it comes to representing many-to-one and many-to-many relationships, relational and document databases are not fundamentally different. In both cases, the related item is referenced by a unique identifier, which is called a _foreign key_ in the relational model and a _document reference_ in the document model.
+
+#### Which data model leads to simpler application code?
+
+- if the data in the application is in the form of a tree of one-to-many relationships, where typically the entire tree is loaded at once, then it's a good idea to use a document model. The relational technique of splitting a document-like structure into multiple tables can lead to cumbersome schema and unnecessarily cumbersome code.
+- document databases have poor support for joins. This might not be a problem in analytics applications in which many-to-many relationships are never needed to record the time at which events occur.
+- if application uses many-to-many relationships, the document model can lead to more complex code and worse performance.
+- for highly interconnected data, the relational model is more acceptable
+
+#### Schema flexibility in document model
+
+Most document databases do not enforce any schema on the data in documents. Document databases are sometimes called schemaless, but that’s misleading, as the code that reads the data usually assumes some kind of structure—i.e., there is an implicit schema, but it is not enforced by the database.
+
+If the schema has to be changed, in document models, we could simply start writing new data in the new schema format. However, in relational schema, a migration might have to be performed.
+
+### Query Languages for Data
+
+SQL is a _declarative_ query language whereas most commonly used programming languages are imperative. An imperative language tells the computer to perform certain operations in a certain order. On the other hand, in a declarative query language, you just specify the pattern of the data you want—what conditions the results must meet, and how you want the data to be transformed (e.g., sorted, grouped, and aggregated)—but not how to achieve that goal.
+
+Imperative code is very hard to parallelize across multiple cores and multiple machines, because it specifies instructions that must be performed in a particular order. Declarative languages have a better chance of getting faster in parallel execution because they specify only the pattern of the results, not the algorithm that is used to determine the results.
+
+The advantages of declarative query languages are not limited to just databases. They can be seen in a web browser. Imagine having to set the background-color to a particular selector in CSS `li.selected > p`. It is fairly straighforward since it is a declarative approach. Imagine having to imperatively using JS to set the color. The code for the same would look awful.
+
+### Graph-Like Data Models
+
+If our application mostly has mostly one-to-many relationships or no relationships, it makes more sense to use a document model. However, if many-to-many relationships are common in our application, then the data becomes too complex for a relational model and we can start modelling the data as a graph.
+
+#### Property Graphs
+
+Each vertex consists of:
+
+- a unique identifier
+- a set of incoming edges
+- a set of outgoing edges
+- a collection of key-value pairs
+
+Each edge consists of:
+
+- a unique identifier
+- vertex at which the edge starts (tail vertex)
+- vertex at which the edge ends (head vertex)
+- a label to describe the kind of relationship
+- a collection of key-value pairs
+
+Representing a property graph using a relational schema:
+
+```sql
+CREATE TABLE vertices (
+    vertex_id   integer PRIMARY KEY,
+    properties  json
+);
+
+CREATE TABLE edges (
+    edge_id     integer PRIMARY KEY,
+    tail_vertex integer REFERENCES vertices (vertex_id),
+    head_vertex integer REFERENCES vertices (vertex_id),
+    label       text,
+    properties  json
+);
+
+CREATE INDEX edges_tails ON edges (tail_vertex);
+CREATE INDEX edges_heads ON edges (head_vertex);
+```
+
+#### Graph Queries in SQL
+
+The above example suggests that graph data can be represented in a relational database. We can also query this graph data in a relational structure, but with some difficulty.
+
+In a relational database, you usually know in advance which joins you need in your query. In a graph query, you may need to traverse a variable number of edges before you find the vertex you’re looking for—that is, the number of joins is not fixed in advance.
+
+#### Triple Stores
+
+Triple Store model is mostly equivalent to the property graph model. In a triple-store, all information is stored in the form of very simple three-part statements: (subject, predicate, object).
+
+- Subject -> vertex
+- Object -> a value in primitive datatype OR another vertex
