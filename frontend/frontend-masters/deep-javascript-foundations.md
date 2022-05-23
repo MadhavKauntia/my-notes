@@ -142,3 +142,57 @@ const carBrand;
 ```
 
 > Function declarations are hoisted but function expressions are not hoisted because assignment is a runtime operation.
+
+## Objects
+
+**this** - A function's _this_ references the execution context for that call, determined entirely by how the function was called.
+
+```js
+function ask(question) {
+  console.log(this.teacher, question);
+}
+
+var workshop1 = {
+  teacher: "Kyle",
+  ask: ask,
+};
+
+var workshop2 = {
+  teacher: "Suzy",
+  ask: ask,
+};
+
+workshop1.ask("How do I share a method?");
+// Kyle How do I share a method?
+
+workshop2.ask("How do I share a method?");
+// Suzy How do I share a method?
+
+ask.call(workshop1, "Can I explicitly set context?");
+// Kyle Can I explicitly set context?
+
+ask.call(workshop2, "Can I explicitly set context?");
+// Suzy Can I explicitly set context?
+
+setTimeout(workshop1.ask, 10, "Lost this?");
+// undefined Lost this?
+
+setTimeout(workshop1.ask.bind(workshop1), 10, "Hard bound this?");
+// Kyle Hard bound this?
+```
+
+Using the **new** keyword:
+
+1. Create a brand new empty object
+2. Link that object to another object
+3. Call function with _this_ set to the new object
+4. If function does not return an object, assume return of _this_
+
+Precedence of determination of **this**:
+
+1. _new_ keyword
+2. using _call()_ or _aaply()_ to call the function (_bind()_ uses _apply()_)
+3. _context object_ on which the function is called
+4. Default: global object
+
+> Arrow functions do not define _this_ at all. Any reference to _this_ within an arrow function must resolve to a binding in a locally enclosing environment. Basically, treat it like a variable. If we do not find _this_ in the current scope, we go up until we find the definition of _this_.
