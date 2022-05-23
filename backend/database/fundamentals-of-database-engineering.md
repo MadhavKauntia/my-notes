@@ -8,6 +8,7 @@
 - [Database Internals](#database-internals)
 - [Database Indexing](#database-indexing)
 - [Database Partitioning](#database-partitioning)
+- [Database Sharding](#database-sharding)
 
 ## ACID
 
@@ -170,3 +171,34 @@ ALTER TABLE grades_part attach partition g80100 FOR VALUES FROM (80) TO (100);
 - Updates that move rows from a partition to another are slow and sometimes fail
 - Inefficient queries could accidentally scan all partitions resulting in slower performance
 - Schema changes can be challenging
+
+## Database Sharding
+
+Database Sharding is simply horizontal partitioning of data in a database onto separate database server instances to spread the load.
+
+The server instance to read or write from is decided using _Consistent Hashing_.
+
+**Difference between Horizontal Partitioning and Sharding:**
+
+- HP splits a big table into multiple tables within the same database whereas sharding splits it into multiple tables across multiple database servers
+- The table name changes in HP whereas in sharding, everything remains the same except the server
+
+**Advantages:**
+
+- Scalability
+- Security (users can access certain shards)
+- Optimal and smaller index size
+
+**Disadvantages:**
+
+- Complex client
+- Transactions across shards cannot be done
+- Rollbacks
+- Schema changes are hard
+- Joins
+
+**When should you consider Sharding?**
+
+- If reads from a table are getting slower due to high number of rows, consider Horizontal Paritioning
+- However, if your database just cannot handle the increased load, coonsider Replication
+- Finally, if the above methods are not enough, consider Sharding
