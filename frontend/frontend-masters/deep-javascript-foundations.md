@@ -196,3 +196,33 @@ Precedence of determination of **this**:
 4. Default: global object
 
 > Arrow functions do not define _this_ at all. Any reference to _this_ within an arrow function must resolve to a binding in a locally enclosing environment. Basically, treat it like a variable. If we do not find _this_ in the current scope, we go up until we find the definition of _this_.
+
+## Prototype
+
+Understanding prototype linkage is an essential part of understanding JS classes.
+
+In languages like Java and C++, objects of a class are essentially _copies_ of the instance. However, in JS, objects are formed through linkage. When an object is created, it is liked to the prototype of the class and when a function is invoked, then the object **delegates** the execution to the prototype.
+
+**OLOO (Objects Linked to Other Objects) Pattern**
+
+```js
+var Workshop = {
+  setTeacher(teacher) {
+    this.teacher = teacher;
+  },
+  ask(question) {
+    console.log(this.teacher, question);
+  },
+};
+
+var AnotherWorkshop = Object.assign(Object.create(Workshop), {
+  speakUp(msg) {
+    this.ask(msg.toUpperCase());
+  },
+});
+
+var JSRecentParts = Object.create(AnotherWorkshop);
+JSRecentParts.setTeacher("Kyle");
+JSRecentParts.speakUp("But isn't this cleaner?");
+// Kyle BUT ISN'T THIS CLEANER?
+```
