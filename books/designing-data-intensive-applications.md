@@ -8,6 +8,10 @@
   - [Relational Model vs Document Model](#relational-model-vs-document-model)
   - [Query Languages for Data](#query-languages-for-data)
   - [Graph-Like Data Models](#graph-like-data-models)
+- [Storage and Retrieval](#storage-and-retrieval)
+  - [Data Structures That Power Your Database](#data-structures-that-power-your-database)
+  - [Transaction Processing or Analytics?](#transaction-processing-or-analytics)
+  - [Column-Oriented Storage](#column-oriented-storage)
 
 ## Reliable, Scalable and Maintainable Applications
 
@@ -157,3 +161,108 @@ Triple Store model is mostly equivalent to the property graph model. In a triple
 
 - Subject -> vertex
 - Object -> a value in primitive datatype OR another vertex
+
+## Storage and Retrieval
+
+### Data Structures That Power Your Database
+
+Consider the world's simplest database implemented using just 2 Bash functions.
+
+```bash
+#!/bin/bash
+
+db_set () {
+    echo "$1,$2" >> database
+}
+
+db_get () {
+    grep "^$1," database | sed -e "s/^$1,//" | tail -n 1
+}
+```
+
+While `db_set()` has good performance, `db_get()` here would have horrible performance as it would lookup the entire list every time we fetch the value for a key. This is where indexing comes in.
+
+An index is an additional structure that is derived from the primary data. Maintaining additional structures incurs overhead, especially on writes.
+
+#### Hash Indexes
+
+Hash maps can be used to index the above database if we maintain a map where the key is the key in the database and the value is the offset/location of that key in the database.
+
+How do we avoid eventually running out of disk space? A good solution is to break the log into segments of a certain size by closing a segment file when it reaches a certain size, and making subsequent writes to a new segment file. We can then perform _compaction_ on these segments.
+
+> Compaction means throwing away duplicate keys in the log, and keeping only the most recent update for each key.
+
+#### SSTables and LSM-Trees
+
+In the segment files, if we require that the sequence of key-value pairs is _sorted by key_, then this format is called _Sorted String Table_ or _SSTable_ for short. This way, merging the segments becomes easier using the mergesort approach. Also, we no longer need to maintain an index of _all_ the keys in memory: say you’re looking for the key `handiwork`, but you don’t know the exact offset of that key in the segment file. However, you do know the offsets for the keys `handbag` and `handsome`, and because of the sorting you know that `handiwork` must appear between those two. This means you can jump to the offset for `handbag` and scan from there until you find `handiwork`.
+
+How to construct and maintain SSTables?
+This can be done using various data structures like _red-black trees_ or _AVL trees_.
+
+- When a write comes in, add it to an in-memory balanced tree data structure.
+- When the memtable gets bigger than some threshold—typically a few megabytes—write it out to disk as an SSTable file.
+- In order to serve a read request, first try to find the key in the memtable, then in the most recent on-disk segment, then in the next-older segment, etc.
+- From time to time, run a merging and compaction process in the background to combine segment files and to discard overwritten or deleted values.
+
+#### B-Trees
+
+Like SSTables, B-trees keep key-value pairs sorted by key, which allows efficient key-value lookups and range queries. B-trees break the database down into fixed-size blocks or pages, traditionally 4 KB in size (sometimes bigger), and read or write one page at a time. This design corresponds more closely to the underlying hardware, as disks are also arranged in fixed-size blocks.
+
+One page is designated as the root of the B-tree; whenever you want to look up a key in the index, you start here. The page contains several keys and references to child pages. Each child is responsible for a continuous range of keys, and the keys between the references indicate where the boundaries between those ranges lie.
+
+![B-Tree Index Lookup](../images/b-trees.png)
+
+The number of references to child pages in one page of the B-tree is called the _branching factor_. In the above image, the _branching factor_ is 6.
+
+In order to make the database resilient to crashes, it is common for B-tree implementations to include an additional data structure on disk: a write-ahead log (WAL, also known as a redo log). This is an append-only file to which every B-tree modification must be written before it can be applied to the pages of the tree itself. When the database comes back up after a crash, this log is used to restore the B-tree back to a consistent state.
+
+Careful concurrency control is required if multiple threads are going to access, typically done protecting the tree internal data structures with latches (lightweight locks).
+
+#### Comparing B-Trees and LSM-Trees
+
+**Advantages of LSM Trees:**
+
+- LSM-trees are typically able to sustain higher write throughput than B-trees
+- LSM-trees can be compressed better, and thus often produce smaller files on disk than B-trees
+
+**Downsides of LSM Trees:**
+
+- Compaction process can sometimes interfere with the performance of ongoing reads and writes
+- An advantage of B-trees is that each key exists in exactly one place in the index, whereas a log-structured storage engine may have multiple copies of the same key in different segments.
+
+#### Other Indexing Structures
+
+There are two ways the value of a key can be stored in an index - it can be the actual row or it could be a reference to the row stored elsewhere. In the latter case, the place where the rows are stored is known as a _heap file_. The heap file approach is common because it avoids duplicating data when multiple secondary indexes are present: each index just references a location in the heap file, and the actual data is kept in one place.
+
+When updating a value without changing the key, the heap file approach can be quite efficient: the record can be overwritten in place, provided that the new value is not larger than the old value.
+
+In some situations, the extra hop from the index to the heap file is too much of a performance penalty for reads, so it can be desirable to store the indexed row directly within an index. This is known as a _clustered index_.
+
+A secondary index can be easily constructed from a key-value index. The main difference is that in a secondary index, the indexed values are not necessarily unique. There are two ways of doing this: making each value in the index a list of matching row identifiers or by making a each entry unique by appending a row identifier to it.
+
+### Transaction Processing or Analytics?
+
+In earlier days, a write to database meant some kind of _commercial transaction_ taking place. Hence, the term _transaction_ stuck.
+
+Now, a database is used for many different kinds of data, including data collected for analytics purposes. The separate database to store this kind of data is called a _data warehouse_.
+
+OLTP - Transaction Processing Systems
+OLAP - Analytics Systems
+
+#### Data Warehousing
+
+A _data warehouse_ is a database which the analysts use to run their analytics queries without affecting the OLTP operations since these operation typically require high availability.
+
+Data is extracted from OLTP databases (using either a periodic data dump or a continuous stream of updates), transformed into an analysis-friendly schema, cleaned up, and then loaded into the data warehouse. This process of getting data into the warehouse is known as _Extract–Transform–Load (ETL)_.
+
+Data warehouses are used in a faily formulaic style, known as _star schema_.
+
+### Column-Oriented Storage
+
+Column-oriented storage is simple: don't store all the values from one row together, but store all values from each column together instead. If each column is stored in a separate file, a query only needs to read and parse those columns that are used in a query, which can save a lot of work.
+
+Column-oriented storage often lends itself very well to compression as the sequences of values for each column look quite repetitive, which is a good sign for compression. A technique that is particularly effective in data warehouses is bitmap encoding.
+
+Bitmap indexes are well suited for all kinds of queries that are common in a data warehouse.
+
+Column-oriented storage, compression, and sorting helps to make read queries faster and make sense in data warehouses, where most of the load consist on large read-only queries run by analysts. The downside is that writes are more difficult.
