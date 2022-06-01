@@ -9,6 +9,7 @@
 - [Database Indexing](#database-indexing)
 - [Database Partitioning](#database-partitioning)
 - [Database Sharding](#database-sharding)
+- [Concurrency Control](#concurrency-control)
 
 ## ACID
 
@@ -202,3 +203,10 @@ The server instance to read or write from is decided using _Consistent Hashing_.
 - If reads from a table are getting slower due to high number of rows, consider Horizontal Paritioning
 - However, if your database just cannot handle the increased load, coonsider Replication
 - Finally, if the above methods are not enough, consider Sharding
+
+## Concurrency Control
+
+- **Exclusive Lock** - Only one process can access a resource as long as it holds an exclusive lock.
+- **Shared Lock** - When multiple processes hold a shared lock over a resource, they can all access the resource but cannot alter the value of the resource.
+
+- To prevent double booking, we need to use **two-phase locking**. We do this by obtaining an exclusive lock to the resource by one process so that both processes don't end up updating the same resource.
