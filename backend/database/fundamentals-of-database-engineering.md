@@ -10,6 +10,7 @@
 - [Database Partitioning](#database-partitioning)
 - [Database Sharding](#database-sharding)
 - [Concurrency Control](#concurrency-control)
+- [Database Replication](#database-replication)
 
 ## ACID
 
@@ -210,3 +211,22 @@ The server instance to read or write from is decided using _Consistent Hashing_.
 - **Shared Lock** - When multiple processes hold a shared lock over a resource, they can all access the resource but cannot alter the value of the resource.
 
 - To prevent double booking, we need to use **two-phase locking**. We do this by obtaining an exclusive lock to the resource by one process so that both processes don't end up updating the same resource.
+
+## Database Replication
+
+### Master/Backup Replication
+
+- One master/leader node that accepts writes/DDLs.
+- One or more backup nodes that receive those writes from the master
+- Simple to implement as there are no conflicts
+
+### Multi-Master Replication
+
+- Multiple master/leader nodes that accept writes/DDLs.
+- One or more backup nodes that receive those writes from the masters
+- Need to resolve conflicts
+
+### Synchronous vs Asynchronous Replication
+
+- **Synchronous Replication** - A write transaction to the master will be blocked until it is written to the backup/standby nodes.
+- **Asynchronous Replication** - A write transaction is considered successful if it is wriiten to the master. Then, the writes are asynchronously applied to the backup nodes.
