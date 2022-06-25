@@ -52,6 +52,33 @@ sudo service sshd restart # restart the daemon
 
 This starts up a web server on the default port 80.
 
+### Nginx Config
+
+> /etc/nginx/nginx.conf
+
+Nginx Redirect
+
+```bash
+location /help {
+    return 301 https://developer.mozilla.org/en-US/;
+}
+```
+
+Adding Subdomain
+
+```bash
+server {
+    listen 80;
+    listen [::]80; # IPV6 notation
+
+    server_name test.madhavisthe.best;
+
+    location / {
+        proxy_pass http://localhost:3000;
+    }
+}
+```
+
 ### Process Manager
 
 - Keeps your application running
@@ -68,3 +95,21 @@ pm2 startup # setup auto restart
 
 - Fail2ban - https://www.techrepublic.com/article/how-to-install-fail2ban-on-ubuntu-server-18-04/
 - ExpressJS performance tips - http://expressjs.com/en/advanced/best-practice-performance.html
+
+## Security
+
+### Security Checklist
+
+- SSH
+- Firewalls
+- Updates
+- Two factor authentication
+- VPN
+
+#### Unattended Upgrades
+
+> sudo apt install unattended-upgrades
+
+#### Adding HTTPS to NGINX
+
+https://certbot.eff.org/
