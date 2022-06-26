@@ -113,3 +113,13 @@ pm2 startup # setup auto restart
 #### Adding HTTPS to NGINX
 
 https://certbot.eff.org/
+
+**To add HTTP/2:**
+
+```bash
+sudo vi /etc/nginx/sites-available/default
+```
+
+Change to:
+
+> listen 443 **http2** ssl
