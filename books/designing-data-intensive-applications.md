@@ -12,6 +12,9 @@
   - [Data Structures That Power Your Database](#data-structures-that-power-your-database)
   - [Transaction Processing or Analytics?](#transaction-processing-or-analytics)
   - [Column-Oriented Storage](#column-oriented-storage)
+- [Encoding and Evolution](#encoding-and-evolution)
+  - [Formats for Encoding Data](#formats-for-encoding-data)
+  - [Modes of Dataflow](#modes-of-dataflow)
 
 ## Reliable, Scalable and Maintainable Applications
 
@@ -266,3 +269,65 @@ Column-oriented storage often lends itself very well to compression as the seque
 Bitmap indexes are well suited for all kinds of queries that are common in a data warehouse.
 
 Column-oriented storage, compression, and sorting helps to make read queries faster and make sense in data warehouses, where most of the load consist on large read-only queries run by analysts. The downside is that writes are more difficult.
+
+## Encoding and Evolution
+
+_Backward Compatibility_ - Newer code can read data that was written by older code.
+_Forward Compatibility_ - Older code can read data that was written by newer code.
+
+### Formats for Encoding Data
+
+The translation from the in-memory representation to a byte sequence is called _encoding_ (also known as serialization or marshalling), and the reverse is called _decoding_ (parsing, deserialization, unmarshalling).
+
+JSON is a format which is widely supported mainly due to its built-in support in web browsers and simplicity relative to XML.
+
+JSON is less verbose than XML, but both still use a lot of space compared to binary formats. This observation led to the development of a profusion of binary encodings for JSON (MessagePack, BSON, BJSON, UBJSON, BISON, and Smile, to name a few) and for XML (WBXML and Fast Infoset, for example). These formats have been adopted in various niches, but none of them are as widely adopted as the textual versions of JSON and XML.
+
+Apache Avro is another binary encoding format. Avro uses a schema to specify the structure of the data being encoded. It has two schema languages: one (Avro IDL) intended for human editing, and one (based on JSON) that is more easily machine-readable.
+
+![Avro Schemas](../images/avro.png)
+
+The key idea with Avro is that the writer’s schema and the reader’s schema don’t have to be the same—they only need to be compatible. With Avro, forward compatibility means that you can have a new version of the schema as writer and an old version of the schema as reader. Conversely, backward compatibility means that you can have a new version of the schema as reader and an old version as writer. To maintain compatibility, you may only add or remove a field that has a default value.
+
+#### Merits of Binary Encodings based on Schemas
+
+- They can be much more compact since they can omit field names from the encoded data
+- The schema is a valuable form of documentation
+- Keeping a database of schemas allows you to check forward and backward compatibility before anything is deployed
+- For users of statically typed programming languages, the ability to generate code form the schema is useful, since it enables type checking at compile-time
+
+### Modes of Dataflow
+
+#### Dataflow through Databases
+
+In a database, the process that writes to the database encodes the data and the process that reads from the database decodes it.
+
+In general, it is common for several different processes to be accessing a database at the same time. Hence, it is necessary to maintain both forward and backward compatibility in a database.
+
+When an older version of the application updates data previously written by a newer version of the application, data may be lost if you're not careful.
+
+Rewriting (migrating) data into a new schema is certainly possible, but it’s an expensive thing to do on a large dataset, so most databases avoid it if possible. Most relational databases allow simple schema changes, such as adding a new column with a null default value, without rewriting existing data.v When an old row is read, the database fills in nulls for any columns that are missing from the encoded data on disk.
+
+#### Dataflow through Services: REST AND RPC
+
+When you have processes that need to communicate over a network, there are a few different ways of arranging that communication. The most common arrangement is to have two roles: clients and servers. The servers expose an API over the network, and the clients can connect to the servers to make requests to that API. The API exposed by the server is known as a service.
+
+The RPC (_Remote Procedure Call_) model tries to make a request to a remote network service look the same as calling a function or method in your programming language, within the same process (this abstraction is called location transparency). Although RPC seems convenient at first, the approach is fundamentally flawed. A network request is very different from a local function call:
+
+- A local function call fails or succeeds only based on parameters that are under your control. A network request may fail due to a variety of other reasons.
+- A local function call either returns a result, or throws an exception or never returns (infinite loop/crash). A network request may return without a result die to a _timeout_.
+- Every time you call a local function, it normally takes about the same time to execute.
+  A network request is much slower than a function call, and its latency is also wildly variable: at good times it may complete in less than a millisecond, but when the network is congested or the remote service is overloaded it may take many seconds to do exactly the same thing.
+
+#### Message-Passing Dataflow
+
+Asynchronous message-passing systems are somewhere between RPC and databases. They are similar to RPC in that a client’s request (usually called a message) is delivered to another process with low latency. They are similar to databases in that the message is not sent via a direct network connection, but goes via an intermediary called a message broker
+
+Advantages of message broker over RPC:
+
+- It can act as a buffer if the recipient is unavailable or overloaded, and thus improve system reliability
+- It can automatically redeliver messages to a process that has crashed and thus prevent messages from being lost
+- It allows one message to be sent to several recipients
+- It logically decouples the sender from the recipient (the sender just publishes the messages and doesn't care who consumes them)
+
+The detailed delivery semantics of **message brokers** vary by implementation and configuration, but in general, message brokers are used as follows: one process sends a message to a named queue or topic, and the broker ensures that the message is delivered to one or more consumers of or subscribers to that queue or topic. There can be many producers and many consumers on the same topic.
