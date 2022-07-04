@@ -11,6 +11,7 @@
 - [Database Sharding](#database-sharding)
 - [Concurrency Control](#concurrency-control)
 - [Database Replication](#database-replication)
+- [Database Engines](#database-engines)
 
 ## ACID
 
@@ -230,3 +231,24 @@ The server instance to read or write from is decided using _Consistent Hashing_.
 
 - **Synchronous Replication** - A write transaction to the master will be blocked until it is written to the backup/standby nodes.
 - **Asynchronous Replication** - A write transaction is considered successful if it is wriiten to the master. Then, the writes are asynchronously applied to the backup nodes.
+
+## Database Engines
+
+Database Engine is a library that takes care of the disk storage and CRUD operations.
+
+- MyISAM
+- InnoDB
+- XtraDB
+- SQLite
+- Aria
+- Berkeley
+- LevelDB
+- RocksDB
+
+**Switching DB engines with MySQL:**
+
+```sql
+show engines; /* to check all supported engines */
+
+CREATE TABLES employees_myisam (id int primary key auto_increment, name text) engine = myisam;
+```
