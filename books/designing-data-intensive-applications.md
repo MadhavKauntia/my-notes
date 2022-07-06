@@ -16,6 +16,9 @@
   - [Formats for Encoding Data](#formats-for-encoding-data)
   - [Modes of Dataflow](#modes-of-dataflow)
 - [Replication](#replication)
+  - [Leader and Followers](#leader-and-followers)
+  - [Multi-Leader Replication](#multi-leader-replication)
+  - [Leaderless Replication](#leaderless-replication)
 
 ## Reliable, Scalable and Maintainable Applications
 
@@ -343,7 +346,7 @@ Benefits of Replication:
 - to allow the system to continue working even if some of its parts have failed
 - to scale out to a number of machines that can serve read queries
 
-### Leaders and Followers
+### Leader and Followers
 
 Leader based replication works as follows:
 
@@ -398,3 +401,71 @@ This inconsistency is just a temporary state—if you stop writing to the databa
 - **Monotonic Reads:** Our second example of an anomaly that can occur when reading from asynchronous followers is that it’s possible for a user to see things moving backward in time. Monotonic reads is a guarantee that this kind of anolamy does not happen. One way of achieving monotonic reads is to make sure that each user always makes their reads from the same replica.
 
 - **Constant Prefix Reads:** Constant prefix reads guarantee says that if a sequence of writes happen in a certain order, then anyone reading those writes will see them in the same order. One solution is to make sure that any writes that are causally related to each other are written to the same partition
+
+### Multi-Leader Replication
+
+In a multi-leader Replication architecture, more than one node accepts writes. In this setup, each leader simultaneously acts as a follower to the other leaders.
+
+#### Use Cases for Multi-Leader Replication
+
+- **Multi-datacenter operation:** In a multi-leader configuration, we can have a leader in each datacenter. Within each datacenter, regular leader–follower replication is used; between datacenters, each datacenter’s leader replicates its changes to the leaders in other datacenters.
+
+- **Clients with offline operation:** If an application needs to work offline, and it has to sync between various devices, then in each device, there is a local database which acts as a leader and there is an asynchronous multi-leader replication process between the replicas of the data on all devices. Eg - calendar app on phone, laptop, PC, etc.
+
+- **Collaborative editing:** On an app like Google Docs in which multiple people can edit a document at once, multi-leader replication is used.When one user edits a document, the changes are instantly applied to their local replica and asynchronously replicated to the server and any other users who are editing the same document.
+
+#### Handling Write Conflicts
+
+- **Synchronous vs asynchronous conflict detection:** Synchronous conflict detection is waiting for the write to be replicated to all the replicas before telling the user that the write was successful. However, this loses the main advantage of multi-leader configuration.
+
+- **Conflcit avoidance:** Conflicts can be avoided by making sure that write requests for a particular record always go through the same leader.
+
+- **Custom conflcit resolution logic:**
+  _On write_
+  As soon as the database system detects a conflict in the log of replicated changes, it calls the conflict handler. This handler typically cannot prompt a user - it runs in a background process and it must execute quickly.
+
+  _On read_
+  When a conflict is detected, all the conflicting writes are stored. The next time the data is read, these multiple versions of the data are returned to the application. The application may prompt the user or automatically resolve the conflict, and write the result back to the database.
+
+#### Multi-Leader Replication Topologies
+
+A _replication topology_ describes the communication paths along which writes are propagated from one node to another. If you have two leaders, there is only one plausible topology: leader 1 must send all of its writes to leader 2, and vice versa. With more than two leaders, various different topologies are possible.
+
+- **all-to-all:** every leader sends its writes to every other leader.
+- **circular topology:** each node receives writes from one node and forwards those writes to one another node.
+- **star topology:** one designated root node forwards writes to all of the other nodes.
+
+### Leaderless Replication
+
+Some data storage systems allow any replica to directly accept writes from the client. It has been popularised by Amazon's _Dynamo_ system. Riak, Cassandra, and Voldemort are open source datastores with leaderless replication models inspired by Dynamo
+
+#### Writing to the Database When a Node Is Down
+
+We have a database with three replicas and we send a write request to it. In leaderless configuration, the client sends the write to all three replicas in parallel. If one replica is down and the other two replicas accept the write, the write might still succeed if it's sufficuent for two out of three replicas to acknowledge the write.
+
+Let's assume the unavailable node comes back online. During a read request, the client doesn't just send its request to one replica: read requests are also sent to several nodes in parallel. Version numbers are then used to determine which value is newer and needs to be returned to the user.
+
+- **Read Repair:** When a client makes a read from several nodes in parallel, it can detect and update any stale responses.
+- **Anti-entropy process:** Some datastores have a background process that constantly looks for differences in the data between replicas and copies any missing data from one replica to another.
+
+#### Limitations of Quorum Consistency
+
+If there are n replicas, every write must be confirmed by w nodes to be considered successful, and we must query at least r nodes for each read. As long as w + r > n, we expect to get an up-to-date value when reading, because at least one of the r nodes we’re reading from must be up to date. Reads and writes that obey these r and w values are called quorum reads and writes.
+
+You may also set w and r to smaller numbers, so that w + r ≤ n (i.e., the quorum condition is not satisfied). In this case, reads and writes will still be sent to n nodes, but a smaller number of successful responses is required for the operation to succeed. With a smaller w and r you are more likely to read stale values, because it’s more likely that your read didn’t include the node with the latest value. On the upside, this configuration allows lower latency and higher availability:
+
+#### Sloppy Quorums and Hinted Handoff
+
+In large cluster, it's likely that the client can connect to some database nodes during the network interruption, just not the nodes that it needs to assemble a quorum for a particular value. In that case, there is a trade-off: is it better to return an error or should the writes be accepted anyway and written to nodes that are reachable but aren't among the n nodes? The latter is known as a _sloppy quorum_. By analogy, if you lock yourself out of your house, you may knock on the neighbor’s door and ask whether you may stay on their couch temporarily.
+
+Once the network interruption is fixed, any writes that a node temporarily accepted on behalf of another node are sent the the appropriate "home" nodes. This is called _hinted handoff_. (Once you find the keys to your house again, your neighbor politely asks you to get off their couch and go home.)
+
+#### Detecting Concurrent Writes
+
+- **Last write wins (discarding concurrent writes):** One approach for achieving eventual convergence is to declare that each replica need only store the most “recent” value and allow “older” values to be overwritten and discarded. Then, as long as we have some way of unambiguously determining which write is more “recent,” and every write is eventually copied to every replica, the replicas will eventually converge to the same value.
+
+- **The "happens-before relationship and concurrency:** Whenever you have two operations A and B, there are three possibilities: either A happened before B, or B happened before A, or A and B are concurrent. What we need is an algorithm to tell us whether two operations are concurrent or not. If one operation happened before another, the later operation should overwrite the earlier operation, but if the operations are concurrent, we have a conflict that needs to be resolved.
+
+- **Merging concurrently written values:** Merging sibling values is essentially the same problem as conflict resolution in multileader replication. With the example of a shopping cart, we can take a union. However, problems arise when an item is deleted by one of the sibling values.
+
+- **Version vectors:** Each replica increments its own version number when processing a write, and also keeps track of the version numbers it has seen from each of the other replicas. The collection of version numbers from all the replicas is called a version vector.
