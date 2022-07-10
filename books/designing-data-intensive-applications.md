@@ -19,6 +19,12 @@
   - [Leader and Followers](#leader-and-followers)
   - [Multi-Leader Replication](#multi-leader-replication)
   - [Leaderless Replication](#leaderless-replication)
+- [Partitioning](#partitioning)
+  - [Partitioning and Replication](#partitioning-and-replication)
+  - [Partitioning of Key-Value Data](#partitioning-of-key-value-data)
+  - [Partitioning and Secondary Indexes](#partitioning-and-secondary-indexes)
+  - [Rebalancing Partitions](#rebalancing-partitions)
+  - [Request Routing](#request-routing)
 
 ## Reliable, Scalable and Maintainable Applications
 
@@ -469,3 +475,87 @@ Once the network interruption is fixed, any writes that a node temporarily accep
 - **Merging concurrently written values:** Merging sibling values is essentially the same problem as conflict resolution in multileader replication. With the example of a shopping cart, we can take a union. However, problems arise when an item is deleted by one of the sibling values.
 
 - **Version vectors:** Each replica increments its own version number when processing a write, and also keeps track of the version numbers it has seen from each of the other replicas. The collection of version numbers from all the replicas is called a version vector.
+
+## Partitioning
+
+A partition is a small database of its own, although the database may support operations that touch multiple partitions at the same time. The main reason for wanting to partition data is _scalability_.
+
+### Partitioning and Replication
+
+Partitioning is usually combined with replication so that copies of each partition are stored on multiple nodes. This means that, even though each record belongs to exactly one partition, it may still be stored on several different nodes for fault tolerance.
+
+![Partitioning and Replication](../images/partitioning-and-replication.png)
+
+### Partitioning of Key-Value Data
+
+Our goal with partitioning is to spread the data and the query load evenly across nodes. If the partitioning is unfair, so that some partitions have more data or queries than others, we call it _skewed_. The presence of skew makes partitioning much less effective. A partition with disproportionately high load is called a _hot spot_.
+
+The simplest approach for avoiding hot spots would be to assign records to nodes randomly. That would distribute the data quite evenly across the nodes, but it has a big disadvantage: when you’re trying to read a particular item, you have no way of knowing which node it is on, so you have to query all nodes in parallel.
+
+#### Partitioning by Key Range
+
+One way of partitioning is to assign a continuous range of keys to each partition. If we know the boundaries between the ranges, then we can easily determine which partition contains a given key.
+
+Within each partition, we can keep the keys in sorted order. This has the advantage that range scans are easy, and you can treat the key as a concatenated index in order to fetch several related records in one query.
+
+However, the downside of key range partitioning is that certain access patterns can lead to hot spots. If the key is a timestamp, then the partitions correspond to ranges of time. Unfortunately, because we write data from the to the database as the measurements happen, all the writes end up going to the same partition (the one for today), so that partition can be overloaded with writes while others sit idle.
+
+#### Partitioning by Hash of Key
+
+Because of this risk of skew and hot spots, many distributed datastores use a hash function to determine the partition for a given key. For partitioning purposes, the hash function need not be cryptographically strong. Once you have a suitable hash function for keys, you can assign each partition a range of hashes (rather than a range of keys), and every key whose hash falls within a partition’s range will be stored in that partition.
+
+However, by using hash of the key for partitioning, we lose the ability to perform efficient range queries. Keys that were once adjacent are now scattered across all partitions, so their sort order is lost.
+
+> Cassandra achieves a compromise between the two partitioning strategies. A table in Cassandra can be declared with a compound primary key consisting of several columns. Only the first part of that key is hashed to determine the partition, but the other columns are used as a concatenated index for sorting the data in Cassandra’s SSTables. A query therefore cannot search for a range of values within the first column of a compound key, but if it specifies a fixed value for the first column, it can perform an efficient range scan over the other columns of the key.
+
+#### Skewed Workloads and Relieving Hot Spots
+
+In an extreme case where all reads and writes are for the same key, we will still end up with all requests being routed to the same partition despite hashing and the hashes of same keys will be the same. An example of such a case is, on a social media site, a celebrity user with millions of followers may cause a storm of activity when they do something.
+
+Perhaps in the future, data systems will be able to automatically detect and compensate for skewed workloads; but for now, we need to think through the trade-offs for our own application.
+
+### Partitioning and Secondary Indexes
+
+The partitioning schemes we have discussed so far rely on a key-value data model. If records are only ever accessed via their primary key, we can determine the partition from that key and use it to route read and write requests to the partition responsible for that key.
+
+The situation becomes more complicated if secondary indexes are involved. A secondary index usually doesn’t identify a record uniquely but rather is a way of searching for occurrences of a particular value: find all actions by user _123_, find all articles containing the word _hogwash_, find all cars whose color is _red_, and so on.
+
+#### Partitioning Secondary Indexes by Document
+
+When we want users to access certain records by secondary index(es), we can create an index on them. In the indexing approach, each partition maintains its own secondary indexes, covering only the documents in that partition. It doesn't care what data is stored in other partitions.
+
+However, reading from a document-partitioned index requires care as there is no reason that records with the same secondary index all lie in the same partition. So, a read query might fetch records from multiple paritions and then combine them. This approch to querying a partitioned database is known as **scatter/gather**, and it can make read queries on secondary indexes quite expensive.
+
+#### Partitioning Secondary Indexes by Term
+
+Rather than each partition having its own secondary index (a _local index_), we can construct a _global index_ that covers data in all partitions. This global index cannot be present on one node and it would then become a bottleneck and defeat the purpose of partitioning, so the global index should also be partitioned.
+
+This type of index is called _term-partitioned_ because the term we're looking for determines the partition of the index. The advantage of a global index over a document-partitioned index is that it can make reads more efficient. Rather than doing a scatter/gather over all partitions, a client only needs to make a request to the partition containing the term that it wants. The downside of a global index is that writes are slower and more complicated.
+
+### Rebalancing Partitions
+
+The process of moving load from one node in the cluster to another is called _rebalancing_.
+
+No matter which partitioning scheme is used, rebalancing is usually expected to meet some minimum requirements:
+
+- After rebalancing, the load should be shared fairly between the nodesin the cluster.
+- While rebalancing is happening, the database should continue accepting reads and writes.
+- No more data than necessary should be moved between nodes, to make rebalancing fast and minimize the network and disk I/O load.
+
+#### Strategies for Rebalancing
+
+- **How not to do it: hash mod N**: We don't use the mod of the hash to determine the partition. Instead, we divide the hashes into ranges and assign each range to a partition. This is because if we use the hasn mod N approach, if the number nodes N changes, most of the keys will have to be moved from one node to another.
+
+- **Fixed number of partitions**: We can create more number of partitions than there are nodes and assign several partitions to each node. Now, if a node is added to the cluster, the new node can _steal_ a few partitions from every existing node until the partitions are fairly distributed once again. Same happens if a node is removed from the cluster. Only entire partitions are moved between nodes.
+
+- **Dynamic Partitioning**: Some key range-partitioned databases create partitions dynamically. Whena partition grows to exceed a configured size, it is split into two partitions. After a large partition has been split, one of its two halves can be transferred to another node in order to balance the node.
+
+- **Partitioning proportionately to nodes**: With dynamic partitioning, the number of partitions is proportional to the size of the dataset. On the other hand, with a fixed number of partitions, the size of each partition is proportional to the size of the dataset. A third option is to make number of partitions proportional to hte number of nodes - in other words, to have a fixed number of partitions per node.
+
+### Request Routing
+
+A few different approaches to route request based on keys:
+
+- Allow client to contact any node. If that node coincidentally owns the partition to which the request applies, it can handle the request directly; otherwise, it forwards the request to the appropriate node, receives the reply, and passes the reply along to the client.
+- Send all requests from clients to a routing tier first, which determines the node that should handle each request and forwards it accordingly. This routing tier does not itself handle any requests; it only acts as a partition-aware load balancer.
+- Require that clients be aware of the partitioning and the assignment of partitions to nodes. In this case, a client can connect directly to the appropriate node, without any intermediary.
