@@ -25,6 +25,9 @@
   - [Partitioning and Secondary Indexes](#partitioning-and-secondary-indexes)
   - [Rebalancing Partitions](#rebalancing-partitions)
   - [Request Routing](#request-routing)
+- [Transactions](#transactions)
+  - [The Slippery Concept of a Transaction](#the-slippery-concept-of-a-transaction)
+  - [Weak Isolation Levels](#weak-isolation-levels)
 
 ## Reliable, Scalable and Maintainable Applications
 
@@ -559,3 +562,37 @@ A few different approaches to route request based on keys:
 - Allow client to contact any node. If that node coincidentally owns the partition to which the request applies, it can handle the request directly; otherwise, it forwards the request to the appropriate node, receives the reply, and passes the reply along to the client.
 - Send all requests from clients to a routing tier first, which determines the node that should handle each request and forwards it accordingly. This routing tier does not itself handle any requests; it only acts as a partition-aware load balancer.
 - Require that clients be aware of the partitioning and the assignment of partitions to nodes. In this case, a client can connect directly to the appropriate node, without any intermediary.
+
+## Transactions
+
+A transaction is a way for an application to group several reads and writes together into a logical unit. Conceptually, all the reads and writes in a transaction are executed as one operation: either the entire transaction succeeds (commit) or it fails (abort, rollback).
+
+### The Slippery Concept of a Transaction
+
+#### The Meaning of ACID
+
+- **Atomicity**: The ability to abort a transaction on error and have all writes from that transaction discarded is the defining feature of ACID atomicity.
+
+- **Consistency**: The idea of ACID consistency is that you have certain statements about your data (invariants) that must always be true—for example, in an accounting system, credits and debits across all accounts must always be balanced.
+
+- **Isolation**: Isolation in the sense of ACID means that concurrently executing transactions are isolated from each other: they cannot step on each other’s toes.
+
+- **Durability**: Durability is the promise that once a transaction has committed successfully, any data it has written will not be forgotten, even if there is a hardware fault or the database crashes.
+
+#### Single-Object and Multi-Object Operations
+
+Multi-object transactions require some way of determining which read and write operations belong to the same transaction. In relational databases, that is typically done based on the client’s TCP connection to the database server: on any particular connection, everything between a `BEGIN TRANSACTION` and a `COMMIT` statement is considered to be part of the same transaction.
+
+On the other hand, many nonrelational databases don’t have such a way of grouping operations together. Even if there is a multi-object API, that doesn’t necessarily mean it has transaction semantics: the command may succeed for some keys and fail for others, leaving the database in a partially updated state.
+
+- **Single-object writes**: Even when writing a single document to a database, issues can arise if atomicity or isolation is not enforced. Atomicity can be implemented using a log for crash recovery, and isolation can be implemented using a lock on each object (allowing only one thread to access an object at any one time).
+
+- **The need for multi-object transactions**:
+
+  1. In a relational data model, a row in one table often has a foreign key reference to a row in another table. Multi-object transactions allow you to ensure that these references remain valid.
+  2. When denormalized information needs to be updated, you need to update several documents in one go.
+  3. In databases with secondary indexes, the indexes also need to be updated every time you change a value.
+
+- **Handling errors and aborts**: A key feature of a transaction is that it can be aborted and safely retried if an error occurred. ACID databases are based on this philosophy: if the database is in danger of violating its guarantee of atomicity, isolation, or durability, it would rather abandon the transaction entirely than allow it to remain half-finished.
+
+### Weak Isolation Levels
