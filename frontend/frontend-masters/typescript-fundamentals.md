@@ -90,3 +90,61 @@ type UserContactInfo = {
   email: string;
 };
 ```
+
+## Functions
+
+## Function Overloading
+
+```ts
+type FormSubmitHandler = (data: FormData) => void;
+type MessageHandler = (evt: MessageEvent) => void;
+
+function handleMainEvent(
+  elem: HTMLFormElement | HTMLIFrameElement,
+  handler: FormSubmitHandler | MessageHandler
+) {}
+```
+
+### Class Definition
+
+```ts
+class Car {
+  make: string;
+  mdoel: string;
+  year: number;
+  constructor(make: string, model: string, year: number) {
+    this.make = make;
+    this.model = model;
+    this.year = year;
+  }
+}
+```
+
+The above code can be re-written as:
+
+```ts
+class Car {
+  constructor(
+    public makeL string,
+    public model: string,
+    public year: number
+  ) {}
+}
+```
+
+## Types and Values
+
+- `never` is a type which cannot hold any value, it is useful for exhaustive conditionals.
+
+We can create an Error subclass to handle errors gracefully:
+
+```ts
+class UnreachableError extends Error {
+  constructor(_nvr: never, message: string) {
+    // we pass in the variable which is causing the error as _nvr, if it has a value, we get compile time errors
+    super(message);
+  }
+}
+```
+
+- **Type Guards** can be used to write a function which checks if a variable is of a user-defined type.
