@@ -54,9 +54,9 @@ In the above example, each time `outer()` is called and `incrementCounter()` is 
 
 A lot of JavaScript features are actually not JS features but web browser features.
 
-DOM -> document
-Network Requests -> fetch
-Timer => setTimeout
+- DOM -> document
+- Network Requests -> fetch
+- Timer -> setTimeout
 
 These functions are not executed in JavaScript but in a web browser. Coined term for these functions - **facade functions**.
 
@@ -72,7 +72,7 @@ Until ES6, the way asynchronous JavaScript worked was as follows:
 Using two-pronged facade functions that both:
 
 - Initiate background web browser work, and
-- return a placeholder object (promise) immediately in JavaScript
+- Return a placeholder object (promise) immediately in JavaScript
 
 The returned object has two properties - `value` and `onFulfilled`.
 When the processing is complete, the final value is stored in `value`.
@@ -117,7 +117,7 @@ Whenever we use the `new` keyword to initialize a new object, all this is happen
 A function is both a function and an object. Whenever we use the `new` keyword the initialize an object, the function which is called also has a `prototype` property (empty object by default) which can be used to declare the common functions which that object can call or have a reference to.
 
 ```js
-functio nuserCreator(name, score) {
+function userCreator(name, score) {
   this.name = name;
   this.score = score;
 }
