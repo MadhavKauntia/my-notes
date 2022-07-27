@@ -29,6 +29,11 @@
   - [The Slippery Concept of a Transaction](#the-slippery-concept-of-a-transaction)
   - [Weak Isolation Levels](#weak-isolation-levels)
   - [Serializability](#serializability)
+- [The Trouble with Distributed Systems](#the-trouble-with-distributed-systems)
+  - [Faults and Partial Failures](#faults-and-partial-failures)
+  - [Unreliable Networks](#unreliable-networks)
+  - [Unreliable Clocks](#unreliable-clocks)
+  - [Knowledge, Truth and Lies](#knowledge-truth-and-lies)
 
 ## Reliable, Scalable and Maintainable Applications
 
@@ -711,3 +716,137 @@ In two-phase locaking, several transactions are allowed to concurrently read the
 Serializable snapshot isolation is an optimistic concurrency control technique. Optimistic in this context means that instead of blocking if something potentially dangerous happens, transactions continue anyway, in the hope that everything will turn out all right. When a transaction wants to commit, the database checks whether anything bad happened (i.e., whether isolation was violated); if so, the transaction is aborted and has to be retried. Only transactions that executed serializably are allowed to commit.
 
 Compared to two-phase locking, the big advantage of serializable snapshot isolation is that one transaction doesn’t need to block waiting for locks held by another transaction. Like under snapshot isolation, writers don’t block readers, and vice versa. This design principle makes query latency much more predictable and less variable. In particular, read-only queries can run on a consistent snapshot without requiring any locks, which is very appealing for read-heavy workloads.
+
+## The Trouble with Distributed Systems
+
+### Faults and Partial Failures
+
+In a distributed system, there may well be some parts of the system that are broken in some unpredictable way, even though other parts of the system are working fine. This is known as a partial failure. The difficulty is that partial failures are _nondeterministic_: if you try to do anything involving multiple nodes and the network, it may sometimes work and sometimes unpredictably fail.
+
+#### Cloud Computing and Supercomputing
+
+There is a spectrum of philosophies on how to build large-scale computing systems:
+
+- **High-performance computing**: Supercomputers with thousands of CPUs are typically used for computationally intensive scientific computing tasks, such as weather forecasting or molecular dynamics.
+- **Cloud computing**: It is often associated with multi-tenant datacenters, commodity computers connected with an IP network, elastic/on-demand resource allocation and metered billing.
+- **Traditional enterprise datacenters** lie somewhere in between.
+
+In a supercomputer, a job typically checkpoints the state of its computation to durable storage from time to time. If one node fails, a common solution is to simply stop the entire cluster workload. After the faulty node is repaired, the computation is restarted from the last checkpoint. Internet services look very different from supercomputers.
+
+It is important to consider a wide range of possible faults—even fairly unlikely ones—and to artificially create such situations in your testing environment to see what happens.
+
+> In distributed systems, suspicion, pessimism, and paranoia pay off.
+
+### Unreliable Networks
+
+Distributed systems are a bunch of machines connected by a network. The network is the only way those machines can communicate.
+
+The internet and most internal networks in datacenters are asynchronous packet networks. In this kind of network, one node can send a message (a packet) to another node, but the network gives no guarantees as to when it will arrive, or whether it will arrive at all. The usual way of handling this issue is a timeout: after some time you give up waiting and assume that the response is not going to arrive. However, when a timeout occurs, you still don’t know whether the remote node got your request or not
+
+#### Network Faults in Practice
+
+Even if network faults are rare in your environment, the fact that faults can occur means that your software needs to be able to handle them. Whenever any communication happens over a network, it may fail — there is no way around it.
+
+Handling network faults doesn’t necessarily mean tolerating them: if your network is normally fairly reliable, a valid approach may be to simply show an error message to users while your network is experiencing problems. However, you do need to know how your software reacts to network problems and ensure that the system can recover from them.
+
+#### Detecting Faults
+
+Many systems need to automatically detect faulty nodes. For example:
+
+- A load balancer needs to stop sending requests to a node that is dead.
+- In a distributed database with single-leader replication, if the leader fails, one of the followers needs to be promoted to be the new leader
+
+Rapid feedback about a remote node being down is useful, but you can’t count on it. Even if TCP acknowledges that a packet was delivered, the application may have crashed before handling it. If you want to be sure that a request was successful, you need a positive response from the application itself.
+
+#### Timeouts and Unbounded Delays
+
+A long timeout means a long wait until a node is declared dead. A short timeout detects faults faster, but carries a higher risk of incorrectly declaring a node dead when in fact it has only suffered a temporary slowdown
+
+When a node is declared dead, its responsibilities need to be transferred to other nodes, which places additional load on other nodes and the network. If the system is already struggling with high load, declaring nodes dead prematurely can make the problem worse.
+
+#### Synchronous vs Asynchronous Networks
+
+When you make a call over the telephone network, it establishes a circuit: a fixed, guaranteed amount of bandwidth is allocated for the call, along the entire route between the two callers. This circuit remains in place until the call ends. This kind of network is synchronous: even as data passes through several routers, it does not suffer from queueing, because the 16 bits of space for the call have already been reserved in the next hop of the network. And because there is no queueing, the maximum end-to-end latency of the network is fixed. We call this a _bounded delay_.
+
+On the other hand, in a TCP connection, it opportunistically uses whatever network bandwidth is available. You can give TCP a variable-sized block of data (e.g., an email or a web page), and it will try to transfer it in the shortest time possible. While a TCP connection is idle, it doesn’t use any bandwidth.
+
+Why do datacenter networks and the internet use packet switching? The answer is that they are optimized for _bursty traffic_. If you wanted to transfer a file over a circuit, you would have to guess a bandwidth allocation. If you guess too low, the transfer is unnecessarily slow, leaving network capacity unused. If you guess too high, the circuit cannot be set up.
+
+### Unreliable Clocks
+
+Applications depend on clocks in various ways to answer questions like the following:
+
+1. Has this request timed out yet?
+2. What’s the 99th percentile response time of this service?
+3. When does this cache entry expire?
+
+#### Monotonic Versus Time-of-Day Clocks
+
+- **Time-of-day clocks**: A time-of-day clock returns the current date and time according to some calendar. Time-of-day clocks are usually synchronized with NTP, which means that a timestamp from one machine (ideally) means the same as a timestamp on another machine. However, if the local clock is too far ahead of the NTP server, it may be forcibly reset and appear to jump back to a previous point in time. These jumps, as well as the fact that they often ignore leap seconds, make time-of-day clocks unsuitable for measuring elapsed time.
+
+- **Monotonic clocks**: A monotonic clock is suitable for measuring a duration (time interval), such as a timeout or a service’s response time. You can check the value of the monotonic clock at one point in time, do something, and then check the clock again at a later time. The difference between the two values tells you how much time elapsed between the two checks. However, the absolute value of the clock is meaningless
+
+#### Relying on Synchronized Clocks
+
+If you use software that requires synchronized clocks, it is essential that you also carefully monitor the clock offsets between all the machines. Any node whose clock drifts too far from the others should be declared dead and removed from the cluster. Such monitoring ensures that you notice the broken clocks before they can cause too much damage.
+
+Even though it is tempting to resolve conflicts in database writes by keeping the most “recent” value and discarding others, it’s important to be aware that the definition of “recent” depends on a local time-of-day clock, which may well be incorrect.
+
+#### Process Pauses
+
+How does the single leader in a database partition know that it is still leader and that it may safely accept writes?
+
+One optiom is for the node to obtain a _lease_ from other nodes. The leader must periodically renew the lease before it expires. If the node fails, it stops renewing the lease, so another node can take over.
+
+```java
+while(true) {
+  request = getIncomingRequest();
+
+  if(lease.expiryTimeMillis - System.currentTimeMillis() < 10000) {
+    lease = lease.renew();
+  }
+
+  if(lease.isValid()) {
+    process(request);
+  }
+}
+```
+
+The problem with this code is that it relies on synchronized clocks: the expiry time on the lease is set by a different machine and it's being compared to the local system clock. If the clocks are out of sync by more than a few seconds, this code will start doing strange things. Secondly, if the thread unexpectedly pauses around `lease.isValid()`, it's likely that the lease will have expired and another node must've taken over as leader.
+
+A node in a distributed system must assume that its execution can be paused for a significant length of time at any point, even in the middle of a function. During the pause, the rest of the world keeps moving and may even declare the paused node dead because it’s not responding. Eventually, the paused node may continue running, without even noticing that it was asleep until it checks its clock sometime later.
+
+### Knowledge, Truth and Lies
+
+#### The Truth is Defined by Majority
+
+A distributed system cannot exclusively rely on a single node, because a node may fail at any time, potentially leaving the system stuck and unable to recover. Instead, many distributed algorithms rely on a quorum, that is, voting among the nodes: decisions require some minimum number of votes from several nodes in order to reduce the dependence on any one particular node.
+
+That includes decisions about declaring nodes dead. If a quorum of nodes declares another node dead, then it must be considered dead, even if that node still very much feels alive. The individual node must abide by the quorum decision and step down.
+
+Even if a node believes that it is “the chosen one” (the leader of the partition, the holder of the lock, the request handler of the user who successfully grabbed the username), that doesn’t necessarily mean a quorum of nodes agrees! A node may have formerly been the leader, but if the other nodes declared it dead in the meantime (e.g., due to a network interruption or GC pause), it may have been demoted and another leader may have already been elected. If a node continues acting as the chosen one, even though the majority of nodes have declared it dead, it could cause problems in a system that is not carefully designed. Such a node could send messages to other nodes in its self-appointed capacity, and if other nodes believe it, the system as a whole may do something incorrect.
+
+#### Byzantine Faults
+
+Distributed systems problems become much harder if there is a risk that nodes may “lie” (send arbitrary faulty or corrupted responses) — for example, if a node may claim to have received a particular message when in fact it didn’t. Such behavior is known as a Byzantine fault, and the problem of reaching consensus in this untrusting environment is known as the Byzantine Generals Problem
+
+#### System Model and Reality
+
+The algorithms designed to solve distributed systems problems may assume certain things which are abstracted by defining a _system model_. The three system models in common use are:
+
+- **Synchronous model**: The synchronous model assumes bounded network delay, bounded process pauses, and bounded clock error. This does not imply exactly synchronized clocks or zero network delay; it just means you know that network delay, pauses, and clock drift will never exceed some fixed upper bound. It is not a realistic model of most practical systems as unbounded delays and pauses do occur.
+
+- **Partially synchronous models**: Partial synchrony means that a system behaves like a synchronous system most of the time, but it sometimes exceeds the bounds for network delay, process pauses, and clock drift.
+
+- **Asynchronous model**: In this model, an algorithm is not allowed to make any timing assumptions—in fact, it does not even have a clock (so it cannot use timeouts).
+
+Moreover, besides timing issues, we have to consider node failures. The three most common system models for nodes are:
+
+- **Crash-stop faults**: In the crash-stop model, an algorithm may assume that a node can fail in only one way, namely by crashing.
+
+- **Crash-recovery faults**: In the crash-recovery model, nodes are assumed to have stable storage (i.e., nonvolatile disk storage) that is preserved across crashes, while the in-memory state is assumed to be lost.
+
+- **Byzantine faults**: Nodes may do absolutely anything, including trying to trick and deceive other nodes.
+
+To define what it means for an algorithm to be correct, we can describe its properties. It is worth distinguishing between two different kinds of
+properties: safety and liveness properties. Safety is often informally defined as _nothing bad happens_, and liveness as _something good eventually happens_.
