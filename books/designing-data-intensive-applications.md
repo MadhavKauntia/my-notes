@@ -34,6 +34,9 @@
   - [Unreliable Networks](#unreliable-networks)
   - [Unreliable Clocks](#unreliable-clocks)
   - [Knowledge, Truth and Lies](#knowledge-truth-and-lies)
+- [Consistency and Consensus](#consistency-and-consensus)
+  - [Consistency Guarantees](#consistency-guarantees)
+  - [Linearizability](#linearizability)
 
 ## Reliable, Scalable and Maintainable Applications
 
@@ -850,3 +853,48 @@ Moreover, besides timing issues, we have to consider node failures. The three mo
 
 To define what it means for an algorithm to be correct, we can describe its properties. It is worth distinguishing between two different kinds of
 properties: safety and liveness properties. Safety is often informally defined as _nothing bad happens_, and liveness as _something good eventually happens_.
+
+## Consistency and Consensus
+
+### Consistency Guarantees
+
+Most replicated databases provide at least _eventual consistency_, which means that if you stop writing to the database and wait for some unspecified length of time, then eventually all read requests will return the same value
+
+However, this is a very weak guarantee—it doesn’t say anything about when the replicas will converge. Until the time of convergence, reads could return anything or nothing.
+
+Systems with stronger guarantees may have worse performance or be less fault-tolerant than systems with weaker guarantees. Nevertheless, stronger guarantees can be appealing because they are easier to use correctly.
+
+### Linearizability
+
+The idea behind _linearizability_ is that things would become a lot less confusing if the database could give the illusion that there is only one replica (only one copy of the data). Then every client would have the same view of the data, and you wouldn’t have to worry about replication lag. With this guarantee, even though there may be multiple replicas in reality, the application does not need to worry about them.
+
+In a linearizable system, as soon as one client successfully completes a write, all clients reading from the database must be able to see the value just written. Maintaining the illusion of a single copy of the data means guaranteeing that the value read is the most recent, up-to-date value, and doesn’t come from a stale cache or replica. In other words, linearizability is a _recency guarantee_.
+
+#### What Makes a System Linearizable?
+
+It is possible (though computationally expensive) to test whether a system’s behavior is linearizable by recording the timings of all requests and responses, and checking whether they can be arranged into a valid sequential order.
+
+#### Relying on Linearizability
+
+- **Locking and leader election**: A system that uses single-leader replication needs to ensure that there is indeed only one leader, not several (split brain). One way of electing a leader is to use a lock: every node that starts up tries to acquire the lock, and the one that succeeds becomes the leader. No matter how this lock is implemented, it must be linearizable: all nodes must agree which node owns the lock; otherwise it is useless.
+
+- **Constraints and uniqueness guarantees**: Uniqueness constraints are common in databases: for example, a username or email address must uniquely identify one user, and in a file storage service there cannot be two files with the same path and filename. If you want to enforce this constraint as the data is written (such that if two people try to concurrently create a user or a file with the same name, one of them will be returned an error), you need linearizability.
+
+#### Implementing Linearizable Systems
+
+Let’s revisit the replication methods, and compare whether they can be made linearizable:
+
+- **Single-leader replication _(potentially linearizable)_**: If you make reads from the leader, or from synchronously updated followers, they have the potential to be linearizable. Using the leader for reads relies on the assumption that you know for sure who the leader is.
+
+- **Consensus algortithm _(linearizable)_**: Consensus protocols contain measures to prevent split brain and stale replicas. Thanks to these details, consensus algorithms can implement linearizable storage safely.
+
+- **Multi-leader replication _(not linearizable)_**: Systems with multi-leader replication are generally not linearizable, because they concurrently process writes on multiple nodes and asynchronously replicate them to other nodes. For this reason, they can produce conflicting writes that require resolution.
+
+- **Leaderless replication _(probably not linearizable)_**: For systems with leaderless replication, people sometimes claim that you can obtain “strong consistency” by requiring quorum reads and writes (w + r > n). Depending on the exact configuration of the quorums, and depending on how you define strong consistency, this is not quite true.
+
+#### The Cost of Linearizability
+
+- If your application _requires_ linearizability, and some replicas are disconnected from the other replicas due to a network problem, then some replicas cannot process requests while they are disconnected: they must either wait until the network problem is fixed, or return an error (either way, they become unavailable).
+- If your application _does not require_ linearizability, then it can be written in a way that each replica can process requests independently, even if it is disconnected from other replicas (e.g., multi-leader). In this case, the application can remain available in the face of a network problem, but its behavior is not linearizable.
+
+Thus, applications that don’t require linearizability can be more tolerant of network problems. This insight is popularly known as the _CAP theorem_.
