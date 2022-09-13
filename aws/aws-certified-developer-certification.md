@@ -2,6 +2,7 @@
 
 - [Compute](#compute)
   - [Elastic Compute Cloud (EC2)](#elastic-compute-cloud-ec2)
+  - [Elastic Beanstalk](#elastic-beanstalk)
 
 ## Compute
 
@@ -28,3 +29,19 @@ Components of EC2:
 - **Storage Options**: Selecting storage for your EC2 instance will depend on the instance selected, what you intend to use the instance for and how critical the data.
 
 - **Security**: During the creation of your EC2 instance, you will be asked to select a Security Group for your instance.
+
+### Elastic Beanstalk
+
+- Allows you to upload code of your web application along with the environment configurations.
+
+- Automatically provision and deploy the appropriate and necessary resources required within AWS to make the web application operational.
+
+- These resources can include other AWS services and features, such as EC2, Auto Scaling, application health-monitoring and Elastic Load Balancing in addition to capacity provisioning.
+
+- **Environment Tiers** - The environment tier reflects on how Elastic Beanstalk provisions resources based on what the application is designed to do. For example, if the application manages HTTP requests, it will be run in a web server environment. The two environment tiers are _web server tier_ and _worker tier_.
+
+- **Deployment Options** -
+  1. _All at once_ - default choice. Rolls the application out to your resources at the same time.
+  2. _Rolling_ - application is deployed in batches. this minimises the amount of disruption that is caused.
+  3. _Rolling with additional batch_ - adds another batch of instances within your environment to your resource pool to ensure application availability is not impacted.
+  4. Immutable - creates an entirely new set of instances. this new set is served through a temporary autoscaling group behind your ELB. the old environment would be removed and the autocaling group updated once the deployment is complete.
