@@ -59,3 +59,5 @@ playingWithCollections() {
 - **Stateless Widgets**: The widgets whose state can not be altered once they are built are called stateless widgets. These widgets are immutable once they are built i.e any amount of change in the variables, icons, buttons, or retrieving data can not change the state of the app.
 - **Stateful Widgets**: A Stateful Widget has its own mutable state that it needs to track. It is modified according to the user's input. A Stateful Widget looks after two things primarily, the changed state based on its previous state and an updated view of the user interface.
 - To add an assets/images folder in the root of the project, we will also need to specify the path of that folder under `assets` in `pubspec.yaml`.
+- To make http calls, Flutter provides an `http` deoendency which needs to be mentioned under `dependencies` in `pubspec.yaml`.
+- To build for android, `flutter build apk`.
