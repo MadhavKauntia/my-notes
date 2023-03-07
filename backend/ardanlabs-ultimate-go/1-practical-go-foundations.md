@@ -18,5 +18,7 @@
     JSON -> []byte -> Go: json.Unmarshal
     Go -> io.Writer -> JSON: json.Encoder
     Go -> []byte -> JSON: json.Marshal
-
 - On printing with a '#v' (eg - `fmt.Printf("%#v", r)`), the datatype of the variable is printed as well.
+- `defer` can be used to perform an action when a function exits. For example, when we are opening a file, we can defer closing the stream. This will not execute on the line it is called, but instead will execute only when the function exits.
+- defers are called in LIFO order.
+- 
