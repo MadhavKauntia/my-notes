@@ -9,8 +9,6 @@ I watch almost all content at 1.5x. I usually take notes along the video, someti
 
 ## Taking Notes
 
-**Update (7th March, 2023):** I now use [Obsidian](https://obsidian.md/) to take my notes across my MacBook and iPad.
+I use [Obsidian](https://obsidian.md/) to take my notes across my MacBook and iPad.
 
-I use VSCode to take notes and use the [Markdown All In One](https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one) extension.
-
-Taking notes slows down quite a lot the amount of stuff I can ingest, but I found out it really helps me retain knowledge in the long-term. It allows me to come back, review and even share concepts that could be long forgotten otherwise, the slow intake trade-off is compensated.~
+Taking notes slows down quite a lot the amount of stuff I can ingest, but I found out it really helps me retain knowledge in the long-term. It allows me to come back, review and even share concepts that could be long forgotten otherwise, the slow intake trade-off is compensated.
