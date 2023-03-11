@@ -97,3 +97,22 @@ func main() {
 ```
 
 ## Panics
+- We can set named return values in Go. This makes return values accessible locally within the function.
+- A function to perform division and recover from panics in case the denominator is zero.
+```go
+func safeDivision(a, b int) (q int, err error) {
+	// catching panics in Go
+	defer func() {
+		if e := recover(); e != nil {
+			log.Println("ERROR:", e)
+			err = fmt.Errorf("%v", e)
+		}
+	}()
+	return a / b, nil
+}
+
+func main() {
+	fmt.Prinlln(safeDivision(1, 0)) // 0 runtime error: integer divide by zero
+	fmt.Println(safeDivision(7, 2)) // 3 <nil>
+}
+```
