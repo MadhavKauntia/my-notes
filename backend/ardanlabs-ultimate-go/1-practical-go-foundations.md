@@ -116,3 +116,30 @@ func main() {
 	fmt.Println(safeDivision(7, 2)) // 3 <nil>
 }
 ```
+
+## Distributing Work
+- **Concurrency** - Concurrency is dealing with multiple things at the same time. For example, when you're cooking, you may be checking the oven and the stove too. You're a single person, taking care of multiple things at once.
+- **Parallelism** - Parallelism is actually doing multiple things at the same time. For example, you're cooking and your wife is chopping the veggies.
+- Refer [this](https://www.ardanlabs.com/blog/2018/08/scheduling-in-go-part2.html) article to understand how scheduling works in Go.
+- `go <function>` runs the function as a goroutine.
+
+```go
+/* Go Runtime does not wait for goroutines */
+
+// Output:
+//  main
+func main1() {
+	go fmt.Println("goroutine")
+	fmt.Println("main")
+}
+
+// Output: 
+//	main
+//  goroutine
+func main2() {
+	go fmt.Println("goroutine")
+	fmt.Println("main")
+
+	time.Sleep(10 * time.Millisecond)
+}
+```
