@@ -57,3 +57,20 @@ online
 - Each DB entry has 2 columns - user_id (int -> 4 bytes) and last_hb (int -> 4 bytes).
 - Thus, each entry would have size of 8 bytes.
 - Total storage required for 1 billion users -> 8GB
+
+This information can help us select our database.
+
+- One DB instance can definitely hold the data (since it is only 8GB)
+- However, handling the load would not be possible for a single DB instance.
+- Hence, we partition the data and each node handles a subset of the requests.
+
+We can also optimize storage further by deleting the entries of inactive users.
+
+- Approach 1: Write a cron job that deletes expired entries.
+	- not a robust solution
+	- we need to handle edge case in the business logic
+- Approach 2: Offload this to the database.
+	- DB with KV + expiration -> Redis and DynamoDB
+	- update entry in Redis/DynamoDB with TTL = 30s
+
+1:04:00
